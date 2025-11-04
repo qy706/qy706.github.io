@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on 我的个人博客</title>
+    <link>https://qy706.github.io/posts/</link>
+    <description>Recent content from 我的个人博客</description>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    
+    <managingEditor>xxx@example.com (D-Sketon)</managingEditor>
+    <webMaster>xxx@example.com (D-Sketon)</webMaster>
+    
+    <copyright>All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!</copyright>
+    
+    <lastBuildDate>Tue, 04 Nov 2025 10:00:00 +0800</lastBuildDate>
+    
+    
+    <atom:link href="https://qy706.github.io/posts/index.xml" rel="self" type="application/rss&#43;xml" />
+    
+
+    
+    
+
+    <item>
+      <title>我的第一篇博客</title>
+      <link>https://qy706.github.io/posts/my-first-blog/</link>
+      <pubDate>Tue, 04 Nov 2025 10:00:00 &#43;0800</pubDate>
+      <author>xxx@example.com (D-Sketon)</author>
+      <guid>https://qy706.github.io/posts/my-first-blog/</guid>
+      <description>
+        <![CDATA[<h1>我的第一篇博客</h1><p>Author: D-Sketon(xxx@example.com)</p>
+        
+          <p># 这是我的第一篇博客</p>
+<p>这里写博客正文，支持 Markdown 语法：</p>
+<p>- 列表项1</p>
+<p>- 列表项2</p>
+        
+        <hr><p>Published on 2025-11-04 at <a href='https://qy706.github.io/'>我的个人博客</a>, last modified on 2025-11-04</p>]]>
+      </description>
+      
+    </item>
+    
+  </channel>
+</rss>
