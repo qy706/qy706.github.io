@@ -10,7 +10,7 @@
     <managingEditor>xxx@example.com (D-Sketon)</managingEditor>
     <webMaster>xxx@example.com (D-Sketon)</webMaster>
     
-    <copyright>All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!</copyright>
+    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
     <lastBuildDate>Tue, 04 Nov 2025 10:00:00 +0800</lastBuildDate>
     
@@ -28,14 +28,60 @@
       <author>xxx@example.com (D-Sketon)</author>
       <guid>https://qy706.github.io/posts/my-first-blog/</guid>
       <description>
-        <![CDATA[<h1>我的第一篇博客</h1><p>Author: D-Sketon(xxx@example.com)</p>
+        <![CDATA[<h1>我的第一篇博客</h1><p>作者：D-Sketon（xxx@example.com）</p>
         
           <p># 这是我的第一篇博客</p>
 <p>这里写博客正文，支持 Markdown 语法：</p>
 <p>- 列表项1</p>
 <p>- 列表项2</p>
         
-        <hr><p>Published on 2025-11-04 at <a href='https://qy706.github.io/'>我的个人博客</a>, last modified on 2025-11-04</p>]]>
+        <hr><p>本文2025-11-04首发于<a href='https://qy706.github.io/'>我的个人博客</a>，最后修改于2025-11-04</p>]]>
+      </description>
+      
+    </item>
+    
+    
+
+    <item>
+      <title></title>
+      <link>https://qy706.github.io/posts/mecanum-car-esp32-blog/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 &#43;0000</pubDate>
+      <author>xxx@example.com (D-Sketon)</author>
+      <guid>https://qy706.github.io/posts/mecanum-car-esp32-blog/</guid>
+      <description>
+        <![CDATA[<h1></h1><p>作者：D-Sketon（xxx@example.com）</p>
+        
+          <p>买的东西应该大部分就是下面这些了，除了一部分自己以前买过或者有的</p>
+<p><img src="images/1.jpg" alt="订单-1">
+<img src="images/2.jpg" alt="订单-2">
+<img src="images/3.jpg" alt="订单-3">
+<img src="images/4.jpg" alt="订单-4">
+<img src="images/5.jpg" alt="订单-5"></p>
+<p>加一些杜邦线
+当时先做的网页控制，如下图</p>
+<p><img src="images/6.jpg" alt="网页控制"></p>
+<p>开始参考
+【麦克纳姆轮小车 esp32 - CSDN App】https://blog.csdn.net/qq_50850080/article/details/140700717?sharetype=blog&amp;shareId=140700717&amp;sharerefer=APP&amp;sharesource=m0_72995258&amp;sharefrom=link</p>
+<p><img src="images/7.jpg" alt="麦克纳姆轮小车esp32参考">
+驱动当时找的图在下面
+<img src="images/8.jpg" alt="L298N驱动模块">
+问题可能主要在并联和那些电压要适配电流够用</p>
+<p>第一版是用电源给两个并联的l298n电机供电，然后电机的5v接口给esp32wroom32接了30pin拓展板供电，后面发现电机的电磁干扰问题，影响到了wifi。后续换成一个5v给wroom32供电，驱动那边保持原来供电，把两个电源负极接到30pin拓展板的gnd共地就可以了(驱动负极当然也是都接到gnd)。</p>
+<p>还有麦克纳姆轮和tt电机
+<img src="images/9.jpg" alt="麦克纳姆轮-订单">
+<img src="images/10.jpg" alt="TT电机-订单">
+<img src="images/11.jpg" alt="130TT减速电机"></p>
+<p>根据马达6-8v选的7.4v电源
+麦克纳姆轮原理的话
+<img src="images/12.jpg" alt="原理示意-1">
+<img src="images/13.jpg" alt="左移示意">
+<img src="images/14.jpg" alt="顺时针示意"></p>
+<p>esp32wroom32自带wifi模块的
+我的实际接入是GPIO18 IN1（模块1） 电机A正转  GPIO19 IN2（模块1） 电机A反转  GPIO21 IN3（模块1） 电机B正转  GPIO22 IN4（模块1） 电机B反转  GPIO27 IN1（模块2） 电机C正转  GPIO26 IN2（模块2） 电机C反转  GPIO25 IN3（模块2） 电机D正转  GPIO23 IN4（模块2） 电机D反转</p>
+<p>l298n是1，0正转，0，1反转，00或11停止</p>
+<p>引脚的话可以搜搜或者看原理图对应适合的。</p>
+        
+        <hr><p>本文0001-01-01首发于<a href='https://qy706.github.io/'>我的个人博客</a>，最后修改于0001-01-01</p>]]>
       </description>
       
     </item>
