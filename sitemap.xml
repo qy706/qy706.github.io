@@ -2,19 +2,37 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://qy706.github.io/categories/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
+    <loc>https://qy706.github.io/tags/diy/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
+    <loc>https://qy706.github.io/tags/esp32/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
+    <loc>https://qy706.github.io/tags/l298n/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
     <loc>https://qy706.github.io/posts/</loc>
-    <lastmod>2025-11-04T10:00:00+08:00</lastmod>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
+    <loc>https://qy706.github.io/tags/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
   </url><url>
     <loc>https://qy706.github.io/</loc>
-    <lastmod>2025-11-04T10:00:00+08:00</lastmod>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
+    <loc>https://qy706.github.io/categories/%E7%A1%AC%E4%BB%B6/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
+    <loc>https://qy706.github.io/tags/%E9%BA%A6%E5%85%8B%E7%BA%B3%E5%A7%86%E8%BD%AE/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
+  </url><url>
+    <loc>https://qy706.github.io/posts/mecanum-car-esp32-blog/</loc>
+    <lastmod>2026-10-07T17:38:00+08:00</lastmod>
   </url><url>
     <loc>https://qy706.github.io/posts/my-first-blog/</loc>
     <lastmod>2025-11-04T10:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://qy706.github.io/posts/mecanum-car-esp32-blog/</loc>
-  </url><url>
-    <loc>https://qy706.github.io/categories/</loc>
-  </url><url>
-    <loc>https://qy706.github.io/tags/</loc>
   </url>
 </urlset>

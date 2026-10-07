@@ -12,7 +12,7 @@
     
     <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
-    <lastBuildDate>Tue, 04 Nov 2025 10:00:00 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 07 Oct 2026 17:38:00 +0800</lastBuildDate>
     
     
     <atom:link href="https://qy706.github.io/posts/index.xml" rel="self" type="application/rss&#43;xml" />
@@ -22,34 +22,13 @@
     
 
     <item>
-      <title>我的第一篇博客</title>
-      <link>https://qy706.github.io/posts/my-first-blog/</link>
-      <pubDate>Tue, 04 Nov 2025 10:00:00 &#43;0800</pubDate>
-      <author>xxx@example.com (D-Sketon)</author>
-      <guid>https://qy706.github.io/posts/my-first-blog/</guid>
-      <description>
-        <![CDATA[<h1>我的第一篇博客</h1><p>作者：D-Sketon（xxx@example.com）</p>
-        
-          <p># 这是我的第一篇博客</p>
-<p>这里写博客正文，支持 Markdown 语法：</p>
-<p>- 列表项1</p>
-<p>- 列表项2</p>
-        
-        <hr><p>本文2025-11-04首发于<a href='https://qy706.github.io/'>我的个人博客</a>，最后修改于2025-11-04</p>]]>
-      </description>
-      
-    </item>
-    
-    
-
-    <item>
-      <title></title>
+      <title>麦克纳姆轮小车 ESP32 制作记录</title>
       <link>https://qy706.github.io/posts/mecanum-car-esp32-blog/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 &#43;0000</pubDate>
+      <pubDate>Wed, 07 Oct 2026 17:38:00 &#43;0800</pubDate>
       <author>xxx@example.com (D-Sketon)</author>
       <guid>https://qy706.github.io/posts/mecanum-car-esp32-blog/</guid>
       <description>
-        <![CDATA[<h1></h1><p>作者：D-Sketon（xxx@example.com）</p>
+        <![CDATA[<h1>麦克纳姆轮小车 ESP32 制作记录</h1><p>作者：D-Sketon（xxx@example.com）</p>
         
           <p>买的东西应该大部分就是下面这些了，除了一部分自己以前买过或者有的</p>
 <p><img src="images/1.jpg" alt="订单-1">
@@ -81,7 +60,30 @@
 <p>l298n是1，0正转，0，1反转，00或11停止</p>
 <p>引脚的话可以搜搜或者看原理图对应适合的。</p>
         
-        <hr><p>本文0001-01-01首发于<a href='https://qy706.github.io/'>我的个人博客</a>，最后修改于0001-01-01</p>]]>
+        <hr><p>本文2026-10-07首发于<a href='https://qy706.github.io/'>我的个人博客</a>，最后修改于2026-10-07</p>]]>
+      </description>
+      
+        <category>硬件</category>
+      
+    </item>
+    
+    
+
+    <item>
+      <title>我的第一篇博客</title>
+      <link>https://qy706.github.io/posts/my-first-blog/</link>
+      <pubDate>Tue, 04 Nov 2025 10:00:00 &#43;0800</pubDate>
+      <author>xxx@example.com (D-Sketon)</author>
+      <guid>https://qy706.github.io/posts/my-first-blog/</guid>
+      <description>
+        <![CDATA[<h1>我的第一篇博客</h1><p>作者：D-Sketon（xxx@example.com）</p>
+        
+          <p># 这是我的第一篇博客</p>
+<p>这里写博客正文，支持 Markdown 语法：</p>
+<p>- 列表项1</p>
+<p>- 列表项2</p>
+        
+        <hr><p>本文2025-11-04首发于<a href='https://qy706.github.io/'>我的个人博客</a>，最后修改于2025-11-04</p>]]>
       </description>
       
     </item>
