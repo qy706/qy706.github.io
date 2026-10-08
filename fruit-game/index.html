@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>旋转刀切水果大战</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+  <div id="stage">
+
+    <!-- 游戏世界：背景图（CSS）+ 画布（水果/炸弹/武器/轨迹光点） -->
+    <div id="gameBg" class="layer bg-game hidden"></div>
+    <canvas id="world" class="layer"></canvas>
+
+    <!-- ===================== 游戏中 HUD ===================== -->
+    <div id="hud" class="layer hidden">
+      <div class="hud-top">
+        <div class="chip chip-score">
+          <span class="chip-lbl">分数</span>
+          <span id="scoreVal" class="chip-val">0</span>
+        </div>
+
+        <div class="chip chip-time">
+          <div class="time-line">
+            <span id="timeVal" class="chip-val">60</span><span class="chip-unit">秒</span>
+          </div>
+          <div class="phase-track"><div id="phaseFill"></div></div>
+          <div id="phaseTip" class="phase-tip">水果正常下落</div>
+        </div>
+
+        <div class="chip chip-best">
+          <span class="chip-lbl">最高分</span>
+          <span id="bestValHud" class="chip-val">0</span>
+        </div>
+      </div>
+
+      <!-- 屏幕右边的系统按钮 -->
+      <button id="btnSystem" class="sys-btn" type="button">系统</button>
+
+      <!-- 右下角：本局武器 -->
+      <div id="weaponBadge" class="chip weapon-badge">
+        <img id="weaponIconHud" alt="">
+        <span id="weaponNameHud">—</span>
+      </div>
+
+      <!-- 左下角：公式输入框 + 确认按钮 -->
+      <div id="formulaPanel" class="formula-panel">
+        <div class="formula-row">
+          <span id="formulaEq" class="eq">y =</span>
+          <input id="formulaInput" type="text" value="sinx" spellcheck="false"
+                 autocomplete="off" autocapitalize="off" autocorrect="off">
+          <button id="btnConfirm" type="button">确认</button>
+        </div>
+        <div id="formulaMsg" class="formula-msg">以屏幕正中为原点，输入 y = f(x)</div>
+        <div id="presets" class="presets"></div>
+      </div>
+    </div>
+
+    <!-- ===================== 标题界面 ===================== -->
+    <div id="screenTitle" class="screen bg-title">
+      <h1 class="game-title">旋转刀<br><span class="t-strong">切水果大战</span></h1>
+
+      <!-- 左边：点击选择掷色子 -->
+      <div class="side side-left">
+        <div class="side-h">掷色子</div>
+        <p class="side-p">点击选择掷色子</p>
+        <button id="btnRoll" class="btn-roll" type="button">掷 色 子</button>
+        <div class="roll-mini" id="rollMini">1·2 斧头　3·4 刀　5·6 飞镖</div>
+      </div>
+
+      <!-- 中间：旋转的色子 -->
+      <div class="dice-area">
+        <div class="dice-ring"></div>
+        <div class="dice-wrap" id="diceWrap">
+          <img id="diceImg" src="images/dice.png" alt="色子">
+          <div class="dice-num" id="diceNum"></div>
+        </div>
+        <div class="dice-shadow"></div>
+      </div>
+
+      <!-- 右边：简单游戏介绍 -->
+      <div class="side side-right">
+        <div class="side-h">游戏介绍</div>
+        <ul class="intro">
+          <li><b>掷色子</b>定武器<br><i>1·2 斧头 / 3·4 刀 / 5·6 飞镖</i></li>
+          <li>左下角输入<b>数学公式</b>，武器沿轨迹飞行</li>
+          <li>以屏幕正中心为原点：<b>y = f(x)</b></li>
+          <li>切到水果<b>得分</b>，切到炸弹<b>扣分</b></li>
+          <li>20 秒后水果加速，每 8 秒出炸弹</li>
+          <li>40 秒后更快，每 4 秒出炸弹</li>
+          <li>60 秒结束，结算总分</li>
+        </ul>
+      </div>
+
+      <!-- 掷中的武器展示 -->
+      <div class="reveal-area" id="revealArea">
+        <div class="reveal-img-wrap"><img id="revealImg" alt=""></div>
+        <div class="reveal-name" id="revealName">等待掷色子…</div>
+      </div>
+
+      <div class="title-bottom">
+        <div class="best-line">历史最高分 <b id="bestValTitle">0</b></div>
+        <button id="btnStart" class="btn-start" type="button" disabled>开 始 游 戏</button>
+        <div id="startHint" class="start-hint">请先在左边掷色子决定武器</div>
+      </div>
+    </div>
+
+    <!-- ===================== 暂停界面 ===================== -->
+    <div id="screenPause" class="screen bg-pause hidden">
+      <div class="pause-head">
+        <div class="pause-title">已 暂 停</div>
+        <div class="pause-sub">当前分数 <b id="pauseScore">0</b>　剩余 <b id="pauseTime">60</b> 秒</div>
+      </div>
+      <!-- 按钮位置与 pause_screen.png 中烘焙好的两个按钮完全重合 -->
+      <button id="btnResume" class="pause-btn pause-btn-continue" type="button">继 续</button>
+      <button id="btnQuit"   class="pause-btn pause-btn-quit"     type="button">退 出</button>
+    </div>
+
+    <!-- ===================== 结算界面 ===================== -->
+    <div id="screenResult" class="screen hidden">
+      <div class="result-card">
+        <div class="result-h">本 局 结 算</div>
+        <div class="result-score" id="resultScore">0</div>
+        <div class="result-rows">
+          <div class="result-row"><span>历史最高分</span><b id="resultBest">0</b></div>
+          <div class="result-row"><span>本局武器</span><b id="resultWeapon">—</b></div>
+          <div class="result-row"><span>切中水果</span><b id="resultFruits">0</b></div>
+          <div class="result-row"><span>切中炸弹</span><b id="resultBombs">0</b></div>
+        </div>
+        <div id="newRecord" class="new-record hidden">★ 新纪录 ★</div>
+        <div class="result-btns">
+          <button id="btnAgain"  class="btn-start" type="button">再 来 一 局</button>
+          <button id="btnBackTitle" class="btn-ghost" type="button">返回标题</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+</div>
+
+<div id="loading"><div class="loading-inner">载入中…</div></div>
+
+<script src="game.js"></script>
+</body>
+</html>
