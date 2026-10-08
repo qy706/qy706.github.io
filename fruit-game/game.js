@@ -36,21 +36,23 @@ const PHASES = [
 ];
 function phaseOf(t){ return t < 20 ? PHASES[0] : (t < 40 ? PHASES[1] : PHASES[2]); }
 
-/* --------- 素材几何：content bbox（2048×2048 内），用于把图片内容对准中心 --------- */
+/* --------- 素材几何：可见内容框占整幅图的比例（与文件分辨率无关）
+   数值直接由 images/ 里的实际文件量得，所以图片重新缩放 / 压缩后依然对准中心。
+   cw,ch = 内容宽高比例；cx,cy = 内容几何中心比例 --------- */
 const SPR = {
-  apple:      { f:'apple.png',      bw:1423, bh:1468, cx:1030.5, cy:1034.0 },
-  axe:        { f:'axe.png',        bw:1297, bh:1528, cx:1047.5, cy:1072.0 },
-  banana:     { f:'banana.png',     bw:1267, bh:1175, cx:1025.5, cy:1013.5 },
-  bomb:       { f:'bomb.png',       bw:1065, bh:1572, cx:1027.5, cy:1042.0 },
-  dart:       { f:'dart.png',       bw:1450, bh:1378, cx:1021.0, cy:1043.0 },
-  dice:       { f:'dice.png',       bw:1449, bh:1494, cx:1030.5, cy:1034.0 },
-  grape:      { f:'grape.png',      bw:1175, bh:1695, cx:1022.5, cy:1031.5 },
-  knife:      { f:'knife.png',      bw:1291, bh:1651, cx:1045.5, cy:1036.5 },
-  orange:     { f:'orange.png',     bw:1360, bh:1600, cx:1034.0, cy:1030.0 },
-  peach:      { f:'peach.png',      bw:1312, bh:1423, cx:1030.0, cy:1042.5 },
-  pineapple:  { f:'pineapple.png',  bw:963,  bh:1689, cx:1026.5, cy:1027.5 },
-  strawberry: { f:'strawberry.png', bw:1162, bh:1570, cx:1029.0, cy:1028.0 },
-  watermelon: { f:'watermelon.png', bw:1211, bh:1348, cx:1024.5, cy:1046.0 }
+  apple:      { f:'apple.png',      cw:0.7031, ch:0.7292, cx:0.5052, cy:0.5052 },
+  axe:        { f:'axe.png',        cw:0.6380, ch:0.7500, cx:0.5117, cy:0.5234 },
+  banana:     { f:'banana.png',     cw:0.6224, ch:0.5781, cx:0.5013, cy:0.4948 },
+  bomb:       { f:'bomb.png',       cw:0.5286, ch:0.7734, cx:0.5039, cy:0.5117 },
+  dart:       { f:'dart.png',       cw:0.7161, ch:0.6797, cx:0.4961, cy:0.5117 },
+  dice:       { f:'dice.png',       cw:0.7094, ch:0.7312, cx:0.5031, cy:0.5047 },
+  grape:      { f:'grape.png',      cw:0.5755, ch:0.8307, cx:0.4987, cy:0.5039 },
+  knife:      { f:'knife.png',      cw:0.6354, ch:0.8073, cx:0.5104, cy:0.5052 },
+  orange:     { f:'orange.png',     cw:0.6693, ch:0.7839, cx:0.5065, cy:0.5039 },
+  peach:      { f:'peach.png',      cw:0.6484, ch:0.6953, cx:0.5013, cy:0.5091 },
+  pineapple:  { f:'pineapple.png',  cw:0.4714, ch:0.8281, cx:0.5013, cy:0.5026 },
+  strawberry: { f:'strawberry.png', cw:0.5755, ch:0.7682, cx:0.5039, cy:0.5013 },
+  watermelon: { f:'watermelon.png', cw:0.5938, ch:0.6615, cx:0.5000, cy:0.5104 }
 };
 
 /* --------- 水果表：size = 内容最长边（逻辑像素），pts = 分数 --------- */
@@ -413,6 +415,7 @@ function nearestS(path){
  *  3) DOM 与画布
  * ========================================================================= */
 const $ = id => document.getElementById(id);
+const app       = $('app');
 const stage     = $('stage');
 const canvas    = $('world');
 const ctx       = canvas.getContext('2d');
@@ -427,17 +430,34 @@ const IMG = {};
 let renderScale = 1;
 
 function resize(){
-  const k = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+  // 手机地址栏会伸缩：visualViewport 才是“真正能看到”的那块区域
+  const vv = window.visualViewport;
+  const vw = Math.round((vv && vv.width)  || window.innerWidth);
+  const vh = Math.round((vv && vv.height) || window.innerHeight);
+
+  app.style.width  = vw + 'px';
+  app.style.height = vh + 'px';
+  // 页面被滚动/缩放时，fixed 元素仍贴在布局视口上，需要按可视视口偏移补偿，
+  // 这样嵌在博客文章里（页面可滚动）时游戏也始终对齐可见区域
+  if (vv) app.style.transform =
+    'translate(' + Math.round(vv.offsetLeft || 0) + 'px,' + Math.round(vv.offsetTop || 0) + 'px)';
+
+  const k = Math.min(vw / STAGE_W, vh / STAGE_H);
   stage.style.transform = 'scale(' + k + ')';
-  const s = clamp((window.devicePixelRatio || 1) * k, 1, 3);
+
+  // 画布后备像素：够清晰即可，封顶 2 倍，避免手机上填充率过高
+  const s = clamp((window.devicePixelRatio || 1) * k, 1, 2);
   renderScale = s;
   canvas.width  = Math.round(STAGE_W * s);
   canvas.height = Math.round(STAGE_H * s);
   ctx.setTransform(s, 0, 0, s, 0, 0);
 }
 
+/** 背景图也要预热，否则载入画面消失后背景还没到，会闪一下深色底 */
+const BACKGROUNDS = ['title_screen.webp', 'game_screen.webp', 'pause_screen.webp'];
+
 function loadImages(){
-  const list = Object.keys(SPR).map(k => SPR[k].f);
+  const list = Object.keys(SPR).map(k => SPR[k].f).concat(BACKGROUNDS);
   return Promise.all(list.map(f => new Promise(res => {
     const im = new Image();
     im.onload = () => { IMG[f] = im; res(); };
@@ -446,12 +466,12 @@ function loadImages(){
   })));
 }
 
-/** 以内容几何中心为基准绘制精灵（当前变换的原点 = 目标点） */
+/** 以内容几何中心为基准绘制精灵（当前变换的原点 = 目标点，内容最长边 = size） */
 function drawSpriteAt(name, size){
   const s = SPR[name], img = IMG[s.f];
   if (!img) return;
-  const S = size * 2048 / Math.max(s.bw, s.bh);
-  ctx.drawImage(img, -(s.cx / 2048) * S, -(s.cy / 2048) * S, S, S);
+  const S = size / Math.max(s.cw, s.ch);
+  ctx.drawImage(img, -s.cx * S, -s.cy * S, S, S);
 }
 
 /* --------- 光晕贴图（预渲染，避免每帧建渐变） --------- */
@@ -1105,6 +1125,11 @@ function bind(){
 
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', resize);
+  // 手机滚动/地址栏收放会改变可视区域，需要重新适配
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', resize);
+    window.visualViewport.addEventListener('scroll', resize);
+  }
 }
 
 async function init(){

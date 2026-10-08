@@ -25,10 +25,16 @@ body{
 }
 .hidden{display:none !important}
 
-#app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+/* #app 的尺寸由 JS 按“实际可视区域”写入（处理手机地址栏收放），
+   这里给一个纯 CSS 回退值，避免脚本执行前尺寸为 0 */
+#app{
+  position:fixed;left:0;top:0;
+  width:100%;height:100vh;height:100dvh;
+  display:flex;align-items:center;justify-content:center;
+}
 
 #stage{
-  position:relative;width:540px;height:960px;
+  position:relative;width:540px;height:960px;flex:none;
   transform-origin:center center;
   border-radius:16px;overflow:hidden;
   background:#0b0817;
@@ -36,12 +42,18 @@ body{
 }
 
 .layer{position:absolute;inset:0}
-#world{pointer-events:none}
 
-/* 背景 */
-.bg-game{background:url(images/game_screen.png) center/cover no-repeat}
-.bg-title{background:url(images/title_screen.png) center/cover no-repeat}
-.bg-pause{background:url(images/pause_screen.png) center/cover no-repeat}
+/* ⚠ canvas 是“替换元素”：只写 inset:0 时 width:auto 会解析成它自身的内在尺寸
+   （即 canvas.width 属性），right:0 / bottom:0 被忽略。
+   高 dpr 手机上 canvas.width = 540 × (dpr×k) 是 540 的 2~3 倍，
+   画布就会被撑大 2~3 倍，只露出左上角约 1/s² 的画面 ——
+   表现就是“界面正常但轨迹/水果跑到屏幕外”。必须显式给出 CSS 布局尺寸。 */
+#world{width:540px;height:960px;pointer-events:none}
+
+/* 背景（已压成 WebP：三张合计 ~550KB，原 PNG 合计 ~11MB） */
+.bg-game{background:url(images/game_screen.webp) center/cover no-repeat}
+.bg-title{background:url(images/title_screen.webp) center/cover no-repeat}
+.bg-pause{background:url(images/pause_screen.webp) center/cover no-repeat}
 
 .screen{position:absolute;inset:0;z-index:20}
 
