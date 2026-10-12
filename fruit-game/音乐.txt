@@ -1,0 +1,4 @@
+音乐都在music文件夹里面
+1. 游戏轻背景音乐 (循环).wav → bgm_light_loop.wav
+2. 切到炸弹音效.wav → sfx_bomb.wav
+3. 切到水果音效.wav → sfx_fruit.wav

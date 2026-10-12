@@ -9,6 +9,8 @@
  *      40s 后更快 + 每 4s 炸弹；60s 结算
  *   4. 武器走过的轨迹点出现光亮，2 秒后光亮消失；右边系统按钮可暂停（继续/退出）
  *   5. 记录历史最高分（默认 0）
+ *   6. 音频（见《音乐.txt》）：music/ 下的轻背景音乐循环 + 切水果 / 切炸弹音效，
+ *      首次操作后才后台加载，不拖慢页面；详见第 10 节
  * ========================================================================= */
 'use strict';
 
@@ -579,6 +581,9 @@ function sliceFruit(f){
                    life:0, max:rand(0.35, 0.75), size:rand(2, 5), color:'255,235,150' });
   }
   G.floats.push({ x:f.x, y:f.y, text:'+' + f.pts, life:0, max:0.95, color:'255,228,110', size:26 });
+
+  // 切到水果：按水果横向位置轻微声像，切片声随连击略有变化
+  Snd.sfx('fruit', { pan:(f.x - CX) / CX * 0.6 });
 }
 
 function explodeBomb(b){
@@ -593,6 +598,9 @@ function explodeBomb(b){
                    color: i % 3 === 0 ? '255,240,190' : '255,120,50' });
   }
   G.floats.push({ x:b.x, y:b.y, text:'-' + BOMB_PENALTY, life:0, max:1.0, color:'255,110,90', size:30 });
+
+  // 切到炸弹：爆炸声，变速范围更小（听感更“重”）
+  Snd.sfx('bomb', { pan:(b.x - CX) / CX * 0.5, spread:0.02 });
 }
 
 /** 用“上一帧位置 → 这一帧位置”的线段做碰撞，避免高速穿透 */
@@ -1040,6 +1048,8 @@ function startRound(){
   elPhaseFill.style.width = '100%';
   showScreen('playing');
   render();
+  Snd.resume();          // 从暂停界面“再来一局”时上下文可能仍被挂起
+  Snd.playBgm();         // 轻背景音乐循环（素材未就绪则等载入完成后自动开播）
 }
 
 function endRound(){
@@ -1054,6 +1064,7 @@ function endRound(){
   $('bestValTitle').textContent = G.best;
   $('bestValHud').textContent = G.best;
   showScreen('result');
+  Snd.stopBgm();         // 结算界面淡出背景音乐
 }
 
 function backToTitle(){
@@ -1063,6 +1074,7 @@ function backToTitle(){
   $('bestValTitle').textContent = G.best;
   $('bestValHud').textContent = G.best;
   showScreen('title');
+  Snd.playBgm();         // 回到标题界面：轻音乐重新淡入
 }
 
 /* --------- 暂停 --------- */
@@ -1072,15 +1084,378 @@ function pauseGame(){
   $('pauseScore').textContent = G.score;
   $('pauseTime').textContent = Math.max(0, Math.ceil(ROUND_TIME - G.time));
   showScreen('paused');
+  Snd.suspend();         // 整个音频上下文挂起：音乐停在原处，继续时无缝接上
 }
 function resumeGame(){
   if (G.screen !== 'paused') return;
   G.paused = false;
   showScreen('playing');
+  Snd.resume();
 }
 
 /* =========================================================================
- *  10) 主循环
+ *  10) 音频：背景音乐 + 音效
+ *  ---------------------------------------------------------------------
+ *  · 首屏不请求任何音频：第一次用户操作（同时用来解锁音频）才开始后台下载，
+ *    与“掷色子”动画并行，因此开局前就已就绪，不拖慢页面加载
+ *  · 素材双格式：Ogg Opus 优先（体积约 MP3 的 3/4），浏览器不支持时自动回退
+ *    MP3（Safari 等）。两者只下载其一
+ *  · 两条播放通路，自动选择：
+ *      A. Web Audio —— http(s) 下走这条。延迟最低，音效可叠加、可按位置做声像，
+ *         背景音乐用 AudioBuffer 无缝循环
+ *      B. <audio> 元素 —— 直接双击打开 file:// 页面时浏览器禁止 fetch，
+ *         通路 A 拿不到数据，自动切到这条，保证一样有声音
+ *  · 音效限制并发路数与重触发间隔，避免一刀切中一堆水果时叠成噪音
+ * ========================================================================= */
+const Snd = (function(){
+
+  const DIR  = 'music/';
+  const FILE = { bgm:'bgm_light_loop', fruit:'sfx_fruit', bomb:'sfx_bomb' };
+  const VOL  = { bgm:0.34, fruit:1.00, bomb:0.85 };   // 轻背景音乐 + 略突出的音效
+  const MAX_VOICE = 4;         // 同一音效最多同时几路
+  const RETRIGGER = 45;        // 同一音效两次触发的最小间隔（毫秒）
+  const MUTE_KEY  = 'fruitknife.muted.v1';
+
+  /* 格式探测：Ogg Opus 体积最小，不支持则用 MP3 */
+  let EXT = 'mp3';
+  try{
+    const probe = document.createElement('audio');
+    if (probe.canPlayType && probe.canPlayType('audio/ogg; codecs="opus"') !== '') EXT = 'ogg';
+  }catch (e){ /* 探测失败就用 MP3，兼容性最广 */ }
+
+  const urlOf = name => DIR + FILE[name] + '.' + EXT;
+
+  let muted = false;
+  try{ muted = localStorage.getItem(MUTE_KEY) === '1'; }catch (e){ /* file:// 下可能不可用 */ }
+
+  let unlocked = false, ready = false, loading = null, wantBgm = false, elMode = false;
+
+  /* =====================================================================
+   *  通路 A：Web Audio
+   * ===================================================================== */
+  let ctx = null, master = null, bgmGain = null;
+  const buf = {}, bad = {}, voices = {}, lastAt = {};
+  let bgmNode = null, bgmFade = null;
+
+  /** 首次用户操作时建立音频上下文（必须在手势里同步 resume） */
+  function build(){
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try{ ctx = new AC(); }catch (e){ return null; }
+
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : 1;
+
+    let out = master;
+    if (ctx.createDynamicsCompressor){          // 多路音效同时响时限幅，防止削波
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -10;
+      comp.knee.value      = 8;
+      comp.ratio.value     = 8;
+      comp.attack.value    = 0.003;
+      comp.release.value   = 0.25;
+      master.connect(comp);
+      out = comp;
+    }
+    out.connect(ctx.destination);
+
+    bgmGain = ctx.createGain();
+    bgmGain.gain.value = 0;                     // 由 startBgm 淡入
+    bgmGain.connect(master);
+    return ctx;
+  }
+
+  /** 兼容新旧两种 decodeAudioData 签名 */
+  function decode(ab){
+    return new Promise((ok, no) => {
+      let settled = false;
+      const done = b => { if (!settled){ settled = true; ok(b); } };
+      const fail = e => { if (!settled){ settled = true; no(e || new Error('decode failed')); } };
+      let p = null;
+      try{ p = ctx.decodeAudioData(ab, done, fail); }catch (e){ fail(e); }
+      if (p && p.then) p.then(done, fail);
+    });
+  }
+
+  async function loadOne(name){
+    if (buf[name]) return buf[name];
+    const order = EXT === 'ogg' ? ['ogg', 'mp3'] : ['mp3', 'ogg'];
+    for (const ext of order){
+      const key = FILE[name] + '.' + ext;
+      if (bad[key]) continue;
+      try{
+        const res = await fetch(DIR + key, { cache:'force-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        buf[name] = await decode(await res.arrayBuffer());
+        return buf[name];
+      }catch (e){
+        bad[key] = true;
+        console.warn('音频载入失败：' + key, e);
+      }
+    }
+    return null;
+  }
+
+  function fade(param, to, sec){
+    const t = ctx.currentTime;
+    try{ param.cancelScheduledValues(t); }catch (e){}
+    param.setValueAtTime(param.value, t);      // 从当前值开始，反复淡入淡出不跳变
+    param.linearRampToValueAtTime(to, t + sec);
+  }
+
+  function waStartBgm(){
+    if (!ctx || !buf.bgm || bgmNode) return;
+    // 上一段音乐可能还在淡出（例如结算后立刻“再来一局”）：立刻掐掉，避免两段重叠
+    if (bgmFade){
+      clearTimeout(bgmFade.timer);
+      try{ bgmFade.node.stop(); }catch (e){}
+      try{ bgmFade.node.disconnect(); }catch (e){}
+      bgmFade = null;
+    }
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
+    const s = ctx.createBufferSource();
+    s.buffer    = buf.bgm;
+    s.loop      = true;                 // 素材编码前已做交叉淡化，接缝处无爆音
+    s.loopStart = 0;
+    s.loopEnd   = buf.bgm.duration;
+    s.connect(bgmGain);
+    s.start();
+    bgmNode = s;
+    fade(bgmGain.gain, VOL.bgm, 0.5);
+  }
+
+  function waStopBgm(sec){
+    if (!ctx || !bgmNode) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
+    const s = bgmNode;
+    bgmNode = null;
+    const d = sec == null ? 0.45 : sec;
+    fade(bgmGain.gain, 0, d);
+    const timer = setTimeout(() => {
+      bgmFade = null;
+      try{ s.stop(); }catch (e){}
+      try{ s.disconnect(); }catch (e){}
+    }, d * 1000 + 80);
+    bgmFade = { node:s, timer };
+  }
+
+  function waSfx(name, opt){
+    const t = ctx.currentTime;
+    if (lastAt[name] != null && t - lastAt[name] < RETRIGGER / 1000) return null;
+    if ((voices[name] || 0) >= MAX_VOICE) return null;
+    lastAt[name] = t;
+    voices[name] = (voices[name] || 0) + 1;
+
+    const s = ctx.createBufferSource();
+    s.buffer = buf[name];
+    // 轻微变速：连续切水果时不会听出是同一个采样
+    s.playbackRate.value = 1 + (Math.random() * 2 - 1) * (opt.spread == null ? 0.05 : opt.spread);
+
+    const g = ctx.createGain();
+    g.gain.value = (VOL[name] == null ? 1 : VOL[name]) * (opt.gain == null ? 1 : opt.gain);
+    s.connect(g);
+
+    let tail = g;
+    if (opt.pan != null && ctx.createStereoPanner){   // 按水果在屏幕上的横向位置做声像
+      const p = ctx.createStereoPanner();
+      p.pan.value = clamp(opt.pan, -1, 1);
+      g.connect(p);
+      tail = p;
+    }
+    tail.connect(master);
+
+    s.onended = function(){
+      voices[name] = Math.max(0, (voices[name] || 1) - 1);
+      try{ g.disconnect(); }catch (e){}
+      try{ if (tail !== g) tail.disconnect(); }catch (e){}
+    };
+
+    try{ s.start(t); }catch (e){
+      voices[name] = Math.max(0, voices[name] - 1);
+      return null;
+    }
+    return s;
+  }
+
+  /* =====================================================================
+   *  通路 B：<audio> 元素（file:// 直接双击打开时的保底方案）
+   * ===================================================================== */
+  const elPools = {};
+  let elBgm = null, retryArmed = false;
+
+  function makeEl(name){
+    const a = document.createElement('audio');
+    a.preload = 'auto';
+    a.src = urlOf(name);
+    // 当前格式播不了就换另一种（Opus / MP3 互为备份）
+    a.addEventListener('error', function(){
+      const other = EXT === 'ogg' ? 'mp3' : 'ogg';
+      if (a._tried !== other){
+        a._tried = other;
+        a.src = DIR + FILE[name] + '.' + other;
+        try{ a.load(); }catch (e){}
+      }
+    });
+    return a;
+  }
+
+  function tryPlay(a){
+    let p = null;
+    try{ p = a.play(); }catch (e){ armRetry(); return; }
+    if (p && p.catch) p.catch(() => armRetry());   // 自动播放被拦：等下一次操作再试
+  }
+
+  /** 自动播放被浏览器拦下时，挂到下一次用户操作上重试 */
+  function armRetry(){
+    if (retryArmed) return;
+    retryArmed = true;
+    const h = () => {
+      retryArmed = false;
+      window.removeEventListener('pointerdown', h);
+      window.removeEventListener('keydown', h);
+      if (wantBgm) startBgm();
+    };
+    window.addEventListener('pointerdown', h);
+    window.addEventListener('keydown', h);
+  }
+
+  function elFade(a, to, sec){
+    if (a._fade) clearInterval(a._fade);
+    const from = a.volume, n = Math.max(1, Math.round(sec * 20));
+    let i = 0;
+    a._fade = setInterval(() => {
+      i++;
+      a.volume = clamp(from + (to - from) * i / n, 0, 1);
+      if (i >= n){
+        clearInterval(a._fade);
+        a._fade = null;
+        if (to === 0) a.pause();
+      }
+    }, 50);
+  }
+
+  function elStartBgm(){
+    if (!wantBgm) return;
+    if (!elBgm) elBgm = makeEl('bgm');
+    elBgm.loop = true;
+    elBgm.volume = 0;
+    tryPlay(elBgm);
+    elFade(elBgm, muted ? 0 : VOL.bgm, 0.5);
+  }
+
+  function elSfx(name){
+    const now = Date.now();
+    if (lastAt[name] != null && now - lastAt[name] < RETRIGGER) return;
+    lastAt[name] = now;
+
+    const pool = elPools[name] || (elPools[name] = []);
+    let a = null;
+    for (const c of pool) if (c.paused || c.ended){ a = c; break; }
+    if (!a){
+      if (pool.length < MAX_VOICE){ a = makeEl(name); pool.push(a); }
+      else a = pool[(pool._rr = ((pool._rr || 0) + 1) % pool.length)];   // 满了就轮流复用
+    }
+    try{ if (a.readyState > 0) a.currentTime = 0; }catch (e){}
+    a.volume = muted ? 0 : (VOL[name] == null ? 1 : VOL[name]);
+    tryPlay(a);
+  }
+
+  function enterElMode(){
+    if (elMode) return;
+    elMode = true;
+    console.info('音频：当前环境不能通过 fetch 取音频（多半是直接双击打开的 file:// 页面），改用 <audio> 元素播放。'
+               + '部署到 http(s) 后会自动走延迟更低的 Web Audio 通路。');
+    ['bgm', 'fruit', 'bomb'].forEach(n => {          // 先建好并预热，避免第一次切割才开始下载
+      const a = makeEl(n);
+      a.preload = 'auto';
+      try{ a.load(); }catch (e){}
+      if (n === 'bgm') elBgm = a;
+      else elPools[n] = [a];
+    });
+  }
+
+  /* =====================================================================
+   *  对外接口
+   * ===================================================================== */
+
+  /** 后台加载全部音频（幂等）；就绪后若已请求过 BGM 则自动开播 */
+  function load(){
+    if (loading) return loading;
+    loading = (async () => {
+      if (ctx) await Promise.all(Object.keys(FILE).map(loadOne));
+      if (!buf.bgm) enterElMode();        // 通路 A 拿不到数据 → 切通路 B
+      ready = true;
+      if (wantBgm) startBgm();
+      return true;
+    })();
+    return loading;
+  }
+
+  /** 第一次用户操作：解锁音频 + 开始后台加载 + 标题界面就响起轻音乐 */
+  function unlock(){
+    if (unlocked) return;
+    unlocked = true;
+    const c = build();
+    if (c && c.state === 'suspended' && c.resume) c.resume().catch(() => {});
+    wantBgm = true;
+    load();
+  }
+
+  function startBgm(){
+    wantBgm = true;
+    if (buf.bgm) return waStartBgm();
+    if (ready)   return elStartBgm();
+    /* 素材还没载完：load() 完成后会自动再调一次 */
+  }
+
+  function stopBgm(sec){
+    wantBgm = false;
+    if (buf.bgm) waStopBgm(sec);
+    else if (elBgm) elFade(elBgm, 0, sec == null ? 0.45 : sec);
+  }
+
+  function sfx(name, opt){
+    if (buf[name]) return waSfx(name, opt || {});
+    if (ready) return elSfx(name);       // 该音效没解码成功，用元素播
+    return null;                         // 还没载完就静默跳过，不卡玩法
+  }
+
+  function suspend(){
+    if (ctx && ctx.state === 'running' && ctx.suspend) ctx.suspend().catch(() => {});
+    if (elBgm && !elBgm.paused) elBgm.pause();
+  }
+
+  function resume(){
+    if (ctx && ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
+    if (elBgm && wantBgm && elBgm.paused) tryPlay(elBgm);
+  }
+
+  function setMuted(v){
+    muted = !!v;
+    try{ localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); }catch (e){}
+    if (master) fade(master.gain, muted ? 0 : 1, 0.12);
+    if (elBgm){ if (elBgm._fade) clearInterval(elBgm._fade); elBgm._fade = null; elBgm.volume = muted ? 0 : VOL.bgm; }
+    return muted;
+  }
+
+  return {
+    unlock,
+    load,
+    playBgm : startBgm,
+    stopBgm,
+    sfx,
+    suspend,
+    resume,
+    setMuted,
+    isMuted : () => muted,
+    format  : () => EXT,
+    mode    : () => (elMode ? 'element' : 'webaudio')
+  };
+})();
+
+/* =========================================================================
+ *  11) 主循环
  * ========================================================================= */
 let lastT = performance.now();
 function frame(now){
@@ -1095,7 +1470,7 @@ function frame(now){
 }
 
 /* =========================================================================
- *  11) 事件绑定与启动
+ *  12) 事件绑定与启动
  * ========================================================================= */
 function bind(){
   $('btnRoll').addEventListener('click', rollDice);
@@ -1130,6 +1505,32 @@ function bind(){
     window.visualViewport.addEventListener('resize', resize);
     window.visualViewport.addEventListener('scroll', resize);
   }
+
+  /* --------- 音频 --------- */
+  const btnSound = $('btnSound');
+  function syncSoundBtn(){
+    btnSound.classList.toggle('off', Snd.isMuted());
+    btnSound.setAttribute('aria-pressed', Snd.isMuted() ? 'true' : 'false');
+    btnSound.title = Snd.isMuted() ? '声音：关' : '声音：开';
+  }
+  btnSound.addEventListener('click', () => {
+    Snd.unlock();                       // 点按钮本身就是一次手势，可以顺便解锁
+    Snd.setMuted(!Snd.isMuted());
+    syncSoundBtn();
+  });
+  syncSoundBtn();
+
+  // 第一次用户操作（掷色子/点开始/按任意键）才开始下载音频并解锁播放，
+  // 不与首屏图片抢带宽，也不触发浏览器的自动播放拦截
+  const onFirstGesture = () => { Snd.unlock(); };
+  ['pointerdown', 'touchstart', 'keydown'].forEach(ev =>
+    window.addEventListener(ev, onFirstGesture, { once:true, passive:true }));
+
+  // 切到别的标签页/后台：挂起音频；回来时只要不在暂停界面就接着放
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) Snd.suspend();
+    else if (G.screen !== 'paused') Snd.resume();
+  });
 }
 
 async function init(){

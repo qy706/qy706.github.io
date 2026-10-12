@@ -100,6 +100,27 @@ body{
 }
 .sys-btn:active{transform:translateY(3px);filter:brightness(.94);box-shadow:0 1px 0 rgba(120,60,4,.6),0 4px 10px rgba(0,0,0,.45)}
 
+/* 系统按钮正上方：声音开关（关掉时画一道斜杠） */
+.sound-btn{
+  position:absolute;right:8px;top:326px;width:50px;height:60px;
+  display:grid;place-items:center;
+  font-family:var(--cjk);font-size:23px;line-height:1;font-weight:700;
+  color:#40260a;cursor:pointer;
+  border:2px solid rgba(120,60,4,.85);border-radius:13px;
+  background:linear-gradient(180deg,var(--gold-1),var(--gold-2) 18%,var(--gold-3) 48%,var(--gold-4) 74%,var(--gold-5));
+  box-shadow:0 4px 0 rgba(120,60,4,.6),0 8px 18px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.75);
+  pointer-events:auto;transition:transform .08s,filter .12s;
+}
+.sound-btn:active{transform:translateY(3px);filter:brightness(.94);box-shadow:0 1px 0 rgba(120,60,4,.6),0 4px 10px rgba(0,0,0,.45)}
+.sound-btn::after{
+  content:"";position:absolute;left:50%;top:50%;width:34px;height:3px;
+  margin:-2px 0 0 -17px;border-radius:2px;background:#8a2b12;
+  box-shadow:0 1px 0 rgba(255,255,255,.45);
+  transform:rotate(-38deg);opacity:0;transition:opacity .15s;
+}
+.sound-btn.off{filter:saturate(.3) brightness(.84)}
+.sound-btn.off::after{opacity:1}
+
 .weapon-badge{
   position:absolute;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;
   padding:3px 9px 3px 3px;border-radius:11px;pointer-events:auto;
